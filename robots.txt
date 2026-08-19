@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Sitemap: https://vergleich-ki.de/sitemap.xml
+<!-- deploy 2026-08-17T20:24:52Z analytics -->
+# IndexNow key: /4b30d35dee0e1573616c25f0ceb8edf1.txt
