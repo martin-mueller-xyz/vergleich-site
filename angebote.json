@@ -1,0 +1,18 @@
+{
+  "stand": "2026-08-17",
+  "offers": [
+    {"id":"hallopetra-99","q":["ki telefon","telefon","handwerk","anruf","reception","hallopetra","petra"],"product":"HalloPetra Einzelkämpfer","shop":"HalloPetra","price":99,"currency":"EUR","period":"Monat","url":"https://www.hallopetra.de/","source":"hallopetra.de, 17. Aug 2026"},
+    {"id":"hallopetra-199","q":["ki telefon","telefon","handwerk","anruf","hallopetra"],"product":"HalloPetra Betriebe","shop":"HalloPetra","price":199,"currency":"EUR","period":"Monat","url":"https://www.hallopetra.de/","source":"hallopetra.de, 17. Aug 2026"},
+    {"id":"hallopetra-499","q":["ki telefon","telefon","handwerk","anruf","hallopetra"],"product":"HalloPetra Mittelstand","shop":"HalloPetra","price":499,"currency":"EUR","period":"Monat","url":"https://www.hallopetra.de/","source":"hallopetra.de, 17. Aug 2026"},
+    {"id":"ionos-39","q":["ki telefon","telefon","ionos","telefonassistent","anruf"],"product":"IONOS KI-Telefonassistent Flex","shop":"IONOS","price":39,"currency":"EUR","period":"Monat inkl. MwSt.","url":"https://www.ionos.de/momentum/ki-telefonassistent","source":"ionos.de, 17. Aug 2026"},
+    {"id":"ionos-69","q":["ki telefon","telefon","ionos","telefonassistent"],"product":"IONOS KI-Telefonassistent Flex Pro","shop":"IONOS","price":69,"currency":"EUR","period":"Monat inkl. MwSt.","url":"https://www.ionos.de/momentum/ki-telefonassistent","source":"ionos.de, 17. Aug 2026"},
+    {"id":"ionos-99","q":["ki telefon","telefon","ionos","telefonassistent"],"product":"IONOS KI-Telefonassistent All-Flat","shop":"IONOS","price":99,"currency":"EUR","period":"Monat inkl. MwSt.","url":"https://www.ionos.de/momentum/ki-telefonassistent","source":"ionos.de, 17. Aug 2026"},
+    {"id":"smith-0","q":["ki telefon","telefon","smith","receptionist","anruf"],"product":"Smith.ai AI Receptionist Free","shop":"Smith.ai","price":0,"currency":"USD","period":"Monat","url":"https://www.smith.ai/ai-receptionist","source":"smith.ai, 17. Aug 2026"},
+    {"id":"smith-150","q":["ki telefon","telefon","smith","receptionist"],"product":"Smith.ai AI Receptionist","shop":"Smith.ai","price":150,"currency":"USD","period":"Monat","url":"https://www.smith.ai/ai-receptionist","source":"smith.ai, 17. Aug 2026"},
+    {"id":"smith-500","q":["ki telefon","telefon","smith","receptionist"],"product":"Smith.ai AI Receptionist Plus","shop":"Smith.ai","price":500,"currency":"USD","period":"Monat","url":"https://www.smith.ai/ai-receptionist","source":"smith.ai, 17. Aug 2026"},
+    {"id":"opus-0","q":["video","clip","opus","kurzclip","reels","shorts"],"product":"Opus Clip Free","shop":"Opus","price":0,"currency":"USD","period":"Monat","url":"https://www.opus.pro/pricing","source":"opus.pro/pricing, 17. Aug 2026"},
+    {"id":"opus-15","q":["video","clip","opus","kurzclip","reels"],"product":"Opus Clip Starter","shop":"Opus","price":15,"currency":"USD","period":"Monat","url":"https://www.opus.pro/pricing","source":"opus.pro/pricing, 17. Aug 2026"},
+    {"id":"opus-29","q":["video","clip","opus","kurzclip","reels"],"product":"Opus Clip Pro","shop":"Opus","price":29,"currency":"USD","period":"Monat","url":"https://www.opus.pro/pricing","source":"opus.pro/pricing, 17. Aug 2026"},
+    {"id":"chatgpt-20","q":["chatgpt","gpt","openai","chat"],"product":"ChatGPT Plus","shop":"OpenAI","price":20,"currency":"USD","period":"Monat","url":"https://openai.com/chatgpt/pricing","source":"help.openai.com, ChatGPT Plus $20/month"}
+  ]
+}

@@ -270,3 +270,26 @@ section + section { margin-top: 2.4rem; }
   .wrap { width: min(1080px, calc(100% - 1.4rem)); padding-top: 1.7rem; }
   .row dl > div:first-child dd { font-size: 1.4rem; }
 }
+
+.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0; }
+.search-page { padding-top: 3.2rem; }
+.hero { max-width: 40rem; }
+.hero h1 { margin: 0 0 0.6rem; font-size: clamp(2.4rem, 6vw, 3.6rem); font-weight: 600; letter-spacing: -0.04em; line-height: 1.05; }
+.search-box { display: flex; gap: 0.5rem; margin-top: 1.6rem; background: #fff; border: 1px solid var(--line); border-radius: 980px; padding: 0.35rem 0.35rem 0.35rem 1.1rem; box-shadow: var(--shadow); }
+.search-box input { flex: 1; border: 0; background: transparent; font: inherit; font-size: 1.05rem; min-width: 0; outline: none; }
+.search-box button { min-height: 48px; padding: 0 1.25rem; border: 0; border-radius: 980px; background: var(--ink); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+.search-box button:hover { background: #000; }
+.status { margin: 1.6rem 0 0.8rem; color: var(--muted); font-size: 0.95rem; }
+.offer .price { margin: 0.35rem 0 0; font-size: 1.8rem; font-weight: 600; letter-spacing: -0.03em; }
+.offer .shop { margin: 0; color: var(--muted); font-size: 0.86rem; }
+.offer .src { margin: 0.35rem 0 0; color: var(--muted); font-size: 0.78rem; }
+.shop-search { margin-top: 2.2rem; padding: 1.2rem 1.3rem; background: #fff; border: 1px solid var(--line); border-radius: var(--r); }
+.shop-search h2 { margin: 0 0 0.35rem; font-size: 1.2rem; }
+.shop-search p { margin: 0 0 0.8rem; color: var(--muted); }
+.shop-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.shop-list a { display: inline-flex; align-items: center; min-height: 44px; padding: 0.5rem 0.95rem; border-radius: 980px; background: rgba(0,0,0,0.05); color: var(--ink); font-weight: 600; text-decoration: none; }
+.shop-list a:hover { background: rgba(0,0,0,0.09); text-decoration: none; }
+@media (max-width: 560px) {
+  .search-box { flex-direction: column; border-radius: 22px; padding: 0.7rem; }
+  .search-box button { width: 100%; }
+}
