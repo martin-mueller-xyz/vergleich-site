@@ -13,110 +13,104 @@
   ];
 
   function norm(s) {
-    return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9äöüß\s]/g, " ").replace(/\s+/g, " ").trim();
+    return (s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9äöüß\s]/gi, " ").replace(/\s+/g, " ").trim();
   }
   function money(n, c) {
-    if (c === "EUR") return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(n);
-    return new Intl.NumberFormat("de-DE", { style: "currency", currency: "USD" }).format(n);
+    const cur = c === "EUR" ? "EUR" : "USD";
+    return new Intl.NumberFormat("de-DE", { style: "currency", currency: cur }).format(n);
   }
   function score(offer, query) {
     const nq = norm(query);
     if (!nq) return 0;
     const hay = norm([offer.product, offer.shop].concat(offer.q || []).join(" "));
-    if (hay.includes(nq)) return 100;
-    const parts = nq.split(" ").filter(Boolean);
-    let hit = 0;
-    for (const p of parts) if (hay.includes(p)) hit += 1;
+    if (hay.indexOf(nq) !== -1) return 100;
+    const parts = nq.split(" ").filter(function (p) { return p.length > 1; });
+    if (!parts.length) return 0;
+    var hit = 0;
+    for (var i = 0; i < parts.length; i++) if (hay.indexOf(parts[i]) !== -1) hit++;
     return hit === 0 ? 0 : (hit / parts.length) * 80;
   }
 
-  function shopRow(q) {
-    const wrap = document.createElement("section");
-    wrap.className = "shop-search";
-    wrap.innerHTML = "<h2>In den Shops suchen</h2><p>Ohne unseren sourced Preis. Der Shop zeigt dir seine eigenen Angebote.</p>";
-    const ul = document.createElement("ul");
-    ul.className = "shop-list";
-    shops.forEach((s) => {
-      const li = document.createElement("li");
-      const a = document.createElement("a");
-      a.href = s.href(q);
-      a.rel = "noopener noreferrer";
-      a.textContent = "Suche auf " + s.name;
-      li.appendChild(a);
-      ul.appendChild(li);
-    });
-    wrap.appendChild(ul);
-    return wrap;
+  function card(title, shop, priceText, source, href, cta) {
+    const art = document.createElement("article");
+    art.className = "row offer";
+    art.innerHTML = "<header><h3></h3><p class=\"shop\"></p></header><p class=\"price\"></p><p class=\"src\"></p><p class=\"out\"><a rel=\"noopener noreferrer\"></a></p>";
+    art.querySelector("h3").textContent = title;
+    art.querySelector(".shop").textContent = shop;
+    art.querySelector(".price").textContent = priceText;
+    art.querySelector(".src").textContent = source;
+    const a = art.querySelector("a");
+    a.href = href;
+    a.textContent = cta || "Zum Angebot";
+    return art;
   }
 
   function render(query, offers) {
     results.innerHTML = "";
-    const q = query.trim();
+    const q = (query || "").trim();
     if (!q) {
       status.textContent = "";
       return;
     }
-    const ranked = offers
-      .map((o) => ({ o, s: score(o, q) }))
-      .filter((x) => x.s > 0)
-      .sort((a, b) => {
-        if (a.o.currency !== b.o.currency) return a.o.currency.localeCompare(b.o.currency);
+    const list = document.createElement("div");
+    list.className = "sheet";
+
+    const ranked = (offers || [])
+      .map(function (o) { return { o: o, s: score(o, q) }; })
+      .filter(function (x) { return x.s > 0; })
+      .sort(function (a, b) {
+        if (a.o.currency !== b.o.currency) return a.o.currency < b.o.currency ? -1 : 1;
         return a.o.price - b.o.price;
       });
 
-    if (ranked.length) {
-      status.textContent = ranked.length + " Angebote, günstigster Preis zuerst. Kein erfundenes Ranking.";
-      const list = document.createElement("div");
-      list.className = "sheet";
-      ranked.forEach(({ o }) => {
-        const art = document.createElement("article");
-        art.className = "row offer";
-        art.innerHTML =
-          "<header><h3></h3><p class=\"shop\"></p></header>" +
-          "<p class=\"price\"></p>" +
-          "<p class=\"src\"></p>" +
-          "<p class=\"out\"><a rel=\"noopener noreferrer\"></a></p>";
-        art.querySelector("h3").textContent = o.product;
-        art.querySelector(".shop").textContent = o.shop;
-        art.querySelector(".price").textContent = money(o.price, o.currency) + (o.period ? " / " + o.period : "");
-        art.querySelector(".src").textContent = o.source;
-        const a = art.querySelector("a");
-        a.href = o.url;
-        a.textContent = "Zum Angebot";
-        list.appendChild(art);
-      });
-      results.appendChild(list);
-    } else {
-      status.textContent = "Dazu haben wir noch keinen sourced Preis. Suche direkt im Shop.";
-    }
-    results.appendChild(shopRow(q));
+    ranked.forEach(function (x) {
+      var o = x.o;
+      list.appendChild(card(
+        o.product,
+        o.shop,
+        money(o.price, o.currency) + (o.period ? " / " + o.period : ""),
+        o.source,
+        o.url,
+        "Zum Angebot"
+      ));
+    });
+
+    shops.forEach(function (s) {
+      list.appendChild(card(
+        q,
+        s.name,
+        "Preis im Shop",
+        "Suche bei " + s.name,
+        s.href(q),
+        "Im Shop öffnen"
+      ));
+    });
+
+    status.textContent = (ranked.length + shops.length) + " Treffer für „" + q + "“";
+    results.appendChild(list);
   }
 
-  let cache = null;
   function load() {
-    if (cache) return Promise.resolve(cache);
-    return fetch("angebote.json", { cache: "no-store" }).then((r) => r.json()).then((d) => {
-      cache = d.offers || [];
-      return cache;
-    });
+    return fetch("angebote.json", { cache: "no-store" })
+      .then(function (r) { return r.ok ? r.json() : { offers: [] }; })
+      .then(function (d) { return d.offers || []; })
+      .catch(function () { return []; });
   }
 
   function run(q) {
-    load().then((offers) => render(q, offers)).catch(() => {
-      status.textContent = "Angebote gerade nicht lesbar.";
-    });
+    load().then(function (offers) { render(q, offers); });
   }
 
-  form.addEventListener("submit", (e) => {
+  form.addEventListener("submit", function (e) {
     e.preventDefault();
-    const q = input.value.trim();
-    const url = new URL(location.href);
+    var q = input.value.trim();
+    var url = new URL(location.href);
     if (q) url.searchParams.set("q", q); else url.searchParams.delete("q");
     history.replaceState(null, "", url);
     run(q);
   });
 
-  const start = new URLSearchParams(location.search).get("q") || "";
+  var start = new URLSearchParams(location.search).get("q") || "";
   if (start) {
     input.value = start;
     run(start);
