@@ -293,3 +293,15 @@ section + section { margin-top: 2.4rem; }
   .search-box { flex-direction: column; border-radius: 22px; padding: 0.7rem; }
   .search-box button { width: 100%; }
 }
+
+.offer.product { display: grid; grid-template-columns: 92px 1fr; gap: 1rem; align-items: center; }
+.offer.product .thumb img, .offer.product .thumb .ph {
+  width: 92px; height: 92px; object-fit: contain; background: #f2f2f2; border-radius: 12px;
+}
+.offer.product .meta { min-width: 0; }
+.offer.product .meta h3 { font-size: 1.02rem; line-height: 1.25; }
+.note { margin-top: 1.2rem; }
+@media (max-width: 560px) {
+  .offer.product { grid-template-columns: 72px 1fr; }
+  .offer.product .thumb img, .offer.product .thumb .ph { width: 72px; height: 72px; }
+}

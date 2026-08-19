@@ -3,101 +3,42 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Preisvergleich: Produkt eingeben, Angebote in den Shops öffnen.">
+  <meta name="description" content="Preisvergleich: Produkt eingeben, echte Angebote mit Preis, weiter zum Shop.">
   <title>Vergleich — Produkt suchen</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d1d1f'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-family='-apple-system,system-ui,sans-serif' font-size='16' font-weight='600' fill='%23fff'%3EV%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
-  <link rel="alternate" hreflang="de" href="/">
-  <link rel="alternate" hreflang="en" href="en/">
 </head>
 <body>
   <header class="mast">
     <div class="mast-brand">
       <div>
         <strong class="wordmark">Vergleich</strong>
-        <p class="tagline">Suchen. Zum Shop.</p>
+        <p class="tagline">Suchen. Preise sehen. Zum Shop.</p>
       </div>
     </div>
     <div class="mast-end">
       <nav class="lang-switch" aria-label="Sprache">
-        <a href="/" lang="de" hreflang="de" aria-current="true">DE</a>
-        <a href="en/" lang="en" hreflang="en">EN</a>
+        <a href="/" lang="de" aria-current="true">DE</a>
+        <a href="en/" lang="en">EN</a>
       </nav>
     </div>
   </header>
   <main class="wrap search-page">
     <section class="hero">
       <h1>Was suchst du?</h1>
+      <p class="lead">Produkt eingeben. Wir listen konkrete Modelle mit Händlerpreis, günstigster zuerst.</p>
       <form id="search-form" class="search-box" role="search" action="/" method="get">
         <label class="sr-only" for="q">Produkt</label>
-        <input id="q" name="q" type="text" placeholder="iPhone, Staubsauger, KI-Telefon …" autocomplete="off">
+        <input id="q" name="q" type="text" placeholder="iPhone, AirPods, Nutella …" autocomplete="off">
         <button type="submit">Vergleichen</button>
       </form>
     </section>
     <p id="status" class="status" role="status"></p>
     <div id="results"></div>
-    <noscript>
-      <p>JavaScript ist aus. Suche so:</p>
-      <ul class="shop-list">
-        <li><a href="https://www.amazon.de/">Amazon</a></li>
-        <li><a href="https://www.otto.de/">Otto</a></li>
-        <li><a href="https://www.idealo.de/">Idealo</a></li>
-      </ul>
-    </noscript>
   </main>
   <footer class="colophon">
     <p><a href="impressum.html">Impressum</a> · <a href="datenschutz.html">Datenschutz</a></p>
   </footer>
-  <script>
-(function () {
-  var form = document.getElementById("search-form");
-  var input = document.getElementById("q");
-  var results = document.getElementById("results");
-  var status = document.getElementById("status");
-  if (!form || !input || !results) return;
-
-  function enc(q) { return encodeURIComponent(q); }
-  function shops(q) {
-    return [
-      { name: "Amazon", url: "https://www.amazon.de/s?k=" + enc(q) },
-      { name: "Otto", url: "https://www.otto.de/suche/" + enc(q) },
-      { name: "MediaMarkt", url: "https://www.mediamarkt.de/de/search.html?query=" + enc(q) },
-      { name: "Idealo", url: "https://www.idealo.de/preisvergleich/MainSearchProductCategory.html?q=" + enc(q) }
-    ];
-  }
-
-  function show(q) {
-    q = (q || "").replace(/^\s+|\s+$/g, "");
-    results.innerHTML = "";
-    if (!q) { status.textContent = ""; return; }
-    status.textContent = "4 Shops für „" + q + "“";
-    var html = '<div class="sheet">';
-    var list = shops(q);
-    for (var i = 0; i < list.length; i++) {
-      var s = list[i];
-      html += '<article class="row offer">' +
-        "<header><h3>" + q.replace(/</g, "") + "</h3><p class=\"shop\">" + s.name + "</p></header>" +
-        "<p class=\"price\">Preis im Shop</p>" +
-        '<p class="out"><a href="' + s.url + '" rel="noopener noreferrer">Im Shop öffnen</a></p>' +
-        "</article>";
-    }
-    html += "</div>";
-    results.innerHTML = html;
-  }
-
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
-    var q = input.value;
-    show(q);
-    if (window.history && history.replaceState) {
-      history.replaceState(null, "", q ? ("/?q=" + enc(q)) : "/");
-    }
-  });
-
-  var start = "";
-  try { start = new URLSearchParams(location.search).get("q") || ""; } catch (e) {}
-  if (start) { input.value = start; show(start); }
-})();
-  </script>
+  <script src="app.js?v=3"></script>
 </body>
 </html>
