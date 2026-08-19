@@ -305,3 +305,7 @@ section + section { margin-top: 2.4rem; }
   .offer.product { grid-template-columns: 72px 1fr; }
   .offer.product .thumb img, .offer.product .thumb .ph { width: 72px; height: 72px; }
 }
+
+.offer .out { gap: 0.5rem; }
+.offer .out a + a { background: #fff; color: var(--ink); border: 1px solid var(--line); }
+.offer .out a + a:hover { background: #f2f2f2; color: var(--ink); }
