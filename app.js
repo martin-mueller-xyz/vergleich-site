@@ -6,13 +6,20 @@
   if (!form || !input || !results) return;
 
   var SYNONYMS = {
+    kopfhorer: ["headphones", "earbuds", "airpods"],
+    kopfhoerer: ["headphones", "earbuds", "airpods"],
+    kopfhörer: ["headphones", "earbuds"],
+    ohrhorer: ["earbuds", "earphones"],
     staubsauger: ["vacuum", "aspirateur"],
-    kopfhorer: ["headphones", "earbuds"],
-    kopfhoerer: ["headphones", "earbuds"],
     fernseher: ["television"],
     waschmaschine: ["washing machine"],
     kuhlschrank: ["refrigerator"],
     kuehlschrank: ["refrigerator"]
+  };
+  var CATEGORIES = {
+    kopfhorer: ["headphones", "earphones"],
+    kopfhoerer: ["headphones", "earphones"],
+    headphones: ["headphones", "earphones"]
   };
   var ACCESSORY = /\b(beutel|sack|sacs?|bags?|hoesje|huelle|hulle|hülle|case|cover|folie|schutz|etui)\b/i;
 
@@ -32,7 +39,14 @@
   function extraTerms(q) {
     var out = [];
     tokens(q).forEach(function (t) {
-      (SYNONYMS[t] || []).forEach(function (s) { out.push(s); });
+      (SYNONYMS[t] || []).forEach(function (s) { if (out.indexOf(s) === -1) out.push(s); });
+    });
+    return out;
+  }
+  function categorySlugs(q) {
+    var out = [];
+    tokens(q).forEach(function (t) {
+      (CATEGORIES[t] || []).forEach(function (s) { if (out.indexOf(s) === -1) out.push(s); });
     });
     return out;
   }
@@ -52,6 +66,12 @@
     }
     return false;
   }
+  function titleMatchesProduct(title, name) {
+    var parts = tokens(name).filter(function (t) { return t.length > 2; }).slice(0, 3);
+    if (parts.length < 1) parts = tokens(name).slice(0, 2);
+    if (!parts.length) return false;
+    return containsAll(title, parts.join(" "));
+  }
   function euro(n) {
     return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(n);
   }
@@ -61,21 +81,18 @@
       return ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c];
     });
   }
-  function shopSearch(name) {
-    return {
-      amazon: "https://www.amazon.de/s?k=" + enc(name),
-      idealo: "https://www.idealo.de/preisvergleich/MainSearchProductCategory.html?q=" + enc(name)
-    };
-  }
   function fetchJson(url) {
     return fetch(url).then(function (r) {
       if (!r.ok) throw new Error(String(r.status));
       return r.json();
     });
   }
-  function offUrl(host, q, n) {
+  function offSearch(host, q, n) {
     return "https://" + host + "/cgi/search.pl?search_terms=" + enc(q) +
       "&search_simple=1&action=process&json=1&page_size=" + n;
+  }
+  function offCategory(slug) {
+    return "https://world.openproductsfacts.org/category/" + enc(slug) + ".json?page_size=24";
   }
   function collect(pack, q, extras, seen, out) {
     (pack.products || []).forEach(function (p) {
@@ -95,74 +112,71 @@
 
   function searchCatalog(q) {
     var extras = extraTerms(q);
+    var cats = categorySlugs(q);
     var seen = {};
     var out = [];
     var jobs = [
-      fetchJson(offUrl("world.openproductsfacts.org", q, 16)).catch(function () { return { products: [] }; }),
-      fetchJson(offUrl("de.openproductsfacts.org", q, 12)).catch(function () { return { products: [] }; })
+      fetchJson(offSearch("world.openproductsfacts.org", q, 16)).catch(function () { return { products: [] }; }),
+      fetchJson(offSearch("de.openproductsfacts.org", q, 12)).catch(function () { return { products: [] }; })
     ];
-    if (extras[0]) {
-      jobs.push(fetchJson(offUrl("world.openproductsfacts.org", extras[0], 12)).catch(function () { return { products: [] }; }));
-    }
+    extras.slice(0, 2).forEach(function (term) {
+      jobs.push(fetchJson(offSearch("world.openproductsfacts.org", term, 12)).catch(function () { return { products: [] }; }));
+    });
+    cats.slice(0, 2).forEach(function (slug) {
+      jobs.push(fetchJson(offCategory(slug)).catch(function () { return { products: [] }; }));
+    });
     return Promise.all(jobs).then(function (packs) {
-      packs.forEach(function (pack) { collect(pack, q, extras, seen, out); });
-      if (out.length >= 3) return out;
-      return fetchJson(offUrl("world.openfoodfacts.org", q, 8))
-        .catch(function () { return { products: [] }; })
-        .then(function (food) {
-          collect(food, q, extras, seen, out);
-          return out;
-        });
+      packs.forEach(function (pack) { collect(pack, q, extras.concat(cats), seen, out); });
+      return out;
     });
   }
 
-  function addPrices(products, q) {
-    return Promise.all(products.slice(0, 12).map(function (p) {
+  function addPrices(products) {
+    return Promise.all(products.slice(0, 20).map(function (p) {
       return fetchJson("https://pricelists.org/api/v1/products/by-gtin/" + enc(p.code))
         .then(function (d) {
           var hit = (d.data || []).find(function (x) {
-            return containsAll(x.title || "", q) && containsAll(x.title || "", p.name.split(" ").slice(0, 2).join(" "));
+            return titleMatchesProduct(x.title || "", p.name);
           });
-          if (!hit || !containsAll(hit.title || "", q)) return p;
-          p.plistTitle = hit.title;
+          if (!hit) return null;
           return fetchJson("https://pricelists.org/api/v1/products/" + enc(hit.id) + "/offers?currency=EUR")
             .then(function (od) {
-              var offers = od.data || [];
-              if (offers[0] && typeof offers[0].price === "number") {
-                p.price = offers[0].price;
-                p.currency = "EUR";
-                p.shop = (offers[0].merchant && offers[0].merchant.name) || "";
-                p.updated = offers[0].last_changed_at || offers[0].updated_at || "";
-              }
+              var offers = (od.data || []).filter(function (o) {
+                return o && typeof o.price === "number" && o.price > 0;
+              });
+              if (!offers.length) return null;
+              offers.sort(function (a, b) { return a.price - b.price; });
+              p.plistTitle = hit.title;
+              p.price = offers[0].price;
+              p.shop = (offers[0].merchant && offers[0].merchant.name) || "";
+              p.shopUrl = offers[0].url || "";
+              p.offerCount = offers.length;
+              p.updated = offers[0].last_changed_at || offers[0].updated_at || "";
               return p;
             })
-            .catch(function () { return p; });
+            .catch(function () { return null; });
         })
-        .catch(function () { return p; });
-    }));
+        .catch(function () { return null; });
+    })).then(function (rows) {
+      return rows.filter(function (p) { return p && typeof p.price === "number" && p.shopUrl; });
+    });
   }
 
   function card(p) {
     var title = p.plistTitle || p.name;
-    var shops = shopSearch(title);
-    var priceText = typeof p.price === "number" ? euro(p.price) : "Preis im Shop";
     var img = p.image
       ? '<img src="' + escapeHtml(p.image) + '" alt="">'
       : '<div class="ph"></div>';
-    var src = typeof p.price === "number"
-      ? ("Preis laut Händlerliste" + (p.shop ? " · " + p.shop : "") + (p.updated ? " · " + String(p.updated).slice(0, 10) : ""))
-      : ("EAN " + p.code);
+    var src = p.shop + (p.offerCount > 1 ? " · " + p.offerCount + " Angebote" : "") +
+      (p.updated ? " · " + String(p.updated).slice(0, 10) : "");
     return '<article class="row offer product">' +
       '<div class="thumb">' + img + "</div>" +
       "<div class=\"meta\">" +
       "<header><h3>" + escapeHtml(title) + "</h3>" +
       '<p class="shop">' + escapeHtml(p.brand || "") + "</p></header>" +
-      '<p class="price">' + escapeHtml(priceText) + "</p>" +
+      '<p class="price">ab ' + escapeHtml(euro(p.price)) + "</p>" +
       '<p class="src">' + escapeHtml(src) + "</p>" +
-      '<p class="out">' +
-      '<a href="' + escapeHtml(shops.idealo) + '" rel="noopener noreferrer">Idealo</a>' +
-      '<a href="' + escapeHtml(shops.amazon) + '" rel="noopener noreferrer">Amazon</a>' +
-      "</p>" +
+      '<p class="out"><a href="' + escapeHtml(p.shopUrl) + '" rel="noopener noreferrer">Zum Shop</a></p>' +
       "</div></article>";
   }
 
@@ -176,19 +190,15 @@
         status.textContent = "Keine konkreten Produkte gefunden.";
         return;
       }
-      return addPrices(products, q).then(function (rows) {
-        rows = rows.filter(function (p) {
-          var title = p.plistTitle || p.name;
-          return nameFits(title, p.brand || "", q, extraTerms(q));
-        });
-        rows.sort(function (a, b) {
-          var ap = typeof a.price === "number" ? a.price : 1e12;
-          var bp = typeof b.price === "number" ? b.price : 1e12;
-          return ap - bp;
-        });
-        status.textContent = rows.length + " Produkte. Link sucht genau dieses Modell.";
+      return addPrices(products).then(function (rows) {
+        rows.sort(function (a, b) { return a.price - b.price; });
+        if (!rows.length) {
+          status.textContent = "Produkte gefunden, aber noch kein Händlerpreis dazu.";
+          return;
+        }
+        status.textContent = rows.length + " Produkte, günstigster Preis zuerst.";
         results.innerHTML = '<div class="sheet products">' + rows.map(card).join("") + "</div>" +
-          '<p class="src note">Nur Treffer, deren Name zur Suche passt. Klick öffnet Idealo oder Amazon für dieses Modell.</p>';
+          '<p class="src note">Nur Treffer mit nachgewiesenem Händlerpreis. Link geht in diesen Shop, nicht in eine andere Suche.</p>';
       });
     }).catch(function () {
       status.textContent = "Suche gerade nicht erreichbar.";
