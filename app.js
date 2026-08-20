@@ -5,6 +5,17 @@
   var status = document.getElementById("status");
   if (!form || !input || !results) return;
 
+  var SYNONYMS = {
+    staubsauger: ["vacuum", "aspirateur"],
+    kopfhorer: ["headphones", "earbuds"],
+    kopfhoerer: ["headphones", "earbuds"],
+    fernseher: ["television"],
+    waschmaschine: ["washing machine"],
+    kuhlschrank: ["refrigerator"],
+    kuehlschrank: ["refrigerator"]
+  };
+  var ACCESSORY = /\b(beutel|sack|sacs?|bags?|hoesje|huelle|hulle|hülle|case|cover|folie|schutz|etui)\b/i;
+
   function norm(s) {
     return String(s || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9äöüß\s]/gi, " ").replace(/\s+/g, " ").trim();
   }
@@ -17,6 +28,29 @@
     var hay = norm(text);
     for (var i = 0; i < qt.length; i++) if (hay.indexOf(qt[i]) === -1) return false;
     return true;
+  }
+  function extraTerms(q) {
+    var out = [];
+    tokens(q).forEach(function (t) {
+      (SYNONYMS[t] || []).forEach(function (s) { out.push(s); });
+    });
+    return out;
+  }
+  function isSpecific(name, q) {
+    var nt = tokens(name);
+    var qt = tokens(q);
+    if (nt.length < 2 && !/\d/.test(name)) return false;
+    if (qt.length && nt.join(" ") === qt.join(" ")) return false;
+    return true;
+  }
+  function nameFits(name, brand, q, extras) {
+    var hay = name + " " + brand;
+    if (ACCESSORY.test(name)) return false;
+    if (containsAll(hay, q) && isSpecific(name, q)) return true;
+    for (var i = 0; i < extras.length; i++) {
+      if (containsAll(hay, extras[i]) && isSpecific(name, extras[i])) return true;
+    }
+    return false;
   }
   function euro(n) {
     return new Intl.NumberFormat("de-DE", { style: "currency", currency: "EUR" }).format(n);
@@ -39,34 +73,46 @@
       return r.json();
     });
   }
+  function offUrl(host, q, n) {
+    return "https://" + host + "/cgi/search.pl?search_terms=" + enc(q) +
+      "&search_simple=1&action=process&json=1&page_size=" + n;
+  }
+  function collect(pack, q, extras, seen, out) {
+    (pack.products || []).forEach(function (p) {
+      var name = p.product_name || p.product_name_de || p.product_name_en || "";
+      var code = p.code;
+      if (!name || !code || seen[code]) return;
+      if (!nameFits(name, p.brands || "", q, extras)) return;
+      seen[code] = 1;
+      out.push({
+        name: name,
+        brand: p.brands || "",
+        code: code,
+        image: p.image_front_url || p.image_url || ""
+      });
+    });
+  }
 
   function searchCatalog(q) {
-    var u = "https://world.openproductsfacts.org/cgi/search.pl?search_terms=" + enc(q) +
-      "&search_simple=1&action=process&json=1&page_size=16";
-    var u2 = "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" + enc(q) +
-      "&search_simple=1&action=process&json=1&page_size=8";
-    return Promise.all([
-      fetchJson(u).catch(function () { return { products: [] }; }),
-      fetchJson(u2).catch(function () { return { products: [] }; })
-    ]).then(function (both) {
-      var seen = {};
-      var out = [];
-      both.forEach(function (pack) {
-        (pack.products || []).forEach(function (p) {
-          var name = p.product_name || p.product_name_en || p.product_name_de || "";
-          var code = p.code;
-          if (!name || !code || seen[code]) return;
-          if (!containsAll(name + " " + (p.brands || ""), q)) return;
-          seen[code] = 1;
-          out.push({
-            name: name,
-            brand: p.brands || "",
-            code: code,
-            image: p.image_front_url || p.image_url || ""
-          });
+    var extras = extraTerms(q);
+    var seen = {};
+    var out = [];
+    var jobs = [
+      fetchJson(offUrl("world.openproductsfacts.org", q, 16)).catch(function () { return { products: [] }; }),
+      fetchJson(offUrl("de.openproductsfacts.org", q, 12)).catch(function () { return { products: [] }; })
+    ];
+    if (extras[0]) {
+      jobs.push(fetchJson(offUrl("world.openproductsfacts.org", extras[0], 12)).catch(function () { return { products: [] }; }));
+    }
+    return Promise.all(jobs).then(function (packs) {
+      packs.forEach(function (pack) { collect(pack, q, extras, seen, out); });
+      if (out.length >= 3) return out;
+      return fetchJson(offUrl("world.openfoodfacts.org", q, 8))
+        .catch(function () { return { products: [] }; })
+        .then(function (food) {
+          collect(food, q, extras, seen, out);
+          return out;
         });
-      });
-      return out;
     });
   }
 
@@ -132,16 +178,17 @@
       }
       return addPrices(products, q).then(function (rows) {
         rows = rows.filter(function (p) {
-          return containsAll(p.plistTitle || p.name, q);
+          var title = p.plistTitle || p.name;
+          return nameFits(title, p.brand || "", q, extraTerms(q));
         });
         rows.sort(function (a, b) {
           var ap = typeof a.price === "number" ? a.price : 1e12;
           var bp = typeof b.price === "number" ? b.price : 1e12;
           return ap - bp;
         });
-        status.textContent = rows.length + " Produkte. Link geht auf die Suche nach genau diesem Modell.";
+        status.textContent = rows.length + " Produkte. Link sucht genau dieses Modell.";
         results.innerHTML = '<div class="sheet products">' + rows.map(card).join("") + "</div>" +
-          '<p class="src note">Nur Treffer, deren Name zur Suche passt. Klick sucht dieses Modell bei Idealo oder Amazon — kein fremder Redirect mehr.</p>';
+          '<p class="src note">Nur Treffer, deren Name zur Suche passt. Klick öffnet Idealo oder Amazon für dieses Modell.</p>';
       });
     }).catch(function () {
       status.textContent = "Suche gerade nicht erreichbar.";
